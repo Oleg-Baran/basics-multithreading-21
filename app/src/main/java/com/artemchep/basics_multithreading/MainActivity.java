@@ -9,7 +9,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.artemchep.basics_multithreading.cipher.CipherUtil;
+import com.artemchep.basics_multithreading.cipher.CipherI;
+import com.artemchep.basics_multithreading.cipher.CipherThread;
 import com.artemchep.basics_multithreading.domain.Message;
 import com.artemchep.basics_multithreading.domain.WithMillis;
 
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(mAdapter);
 
-        showWelcomeDialog();
+        //showWelcomeDialog();
     }
 
     private void showWelcomeDialog() {
@@ -54,11 +55,24 @@ public class MainActivity extends AppCompatActivity {
         mList.add(message);
         mAdapter.notifyItemInserted(mList.size() - 1);
 
+        CipherThread task = new CipherThread(message.value.plainText);
+        task.setCICallback(new CipherI() {
+            @Override
+            public void updateUICallback(String cypheredText, long executionTime) {
+                final Message messageNew = message.value.copy(cypheredText);
+                final WithMillis<Message> messageNewWithMillis = new WithMillis<>(messageNew, (executionTime) / 10000000);
+                update(messageNewWithMillis);
+            }
+        });
+        Thread t = new Thread(task);
+        t.start();
+
         // TODO: Start processing the message (please use CipherUtil#encrypt(...)) here.
         //       After it has been processed, send it to the #update(...) method.
 
         // How it should look for the end user? Uncomment if you want to see. Please note that
         // you should not use poor decor view to send messages to UI thread.
+
 //        getWindow().getDecorView().postDelayed(new Runnable() {
 //            @Override
 //            public void run() {
@@ -67,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
 //                update(messageNewWithMillis);
 //            }
 //        }, CipherUtil.WORK_MILLIS);
+
     }
 
     @UiThread
