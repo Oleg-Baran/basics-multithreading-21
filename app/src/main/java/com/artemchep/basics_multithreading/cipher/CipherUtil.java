@@ -4,7 +4,7 @@ public class CipherUtil {
 
     public static long WORK_MILLIS = 500L;
 
-    public synchronized static String encrypt(String plainText) {
+    public static String encrypt(String plainText) {
         // Simulates the real struggle of encryption.
         try {
             Thread.sleep(WORK_MILLIS * (int) (Math.random() * 5));
