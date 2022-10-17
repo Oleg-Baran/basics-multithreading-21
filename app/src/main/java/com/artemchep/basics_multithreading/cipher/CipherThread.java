@@ -8,9 +8,11 @@ public class CipherThread implements Runnable{
     final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final String textToCypher;
     private CipherI cipherCallback;
+    private long startTime;
 
-    public CipherThread(String textToCypher) {
+    public CipherThread(String textToCypher, long startThreadTime) {
         this.textToCypher = textToCypher;
+        this.startTime = startThreadTime;
     }
 
     public void setCICallback(CipherI entity) {
@@ -20,9 +22,8 @@ public class CipherThread implements Runnable{
     @Override
     public void run() {
         Log.d("TaskStatus", "updateUICallback: " + Thread.currentThread().getName());
-        final long startThreadTime = System.nanoTime();
         final String encryptedText = CipherUtil.encrypt(textToCypher);
-        final long threadTime = System.nanoTime() - startThreadTime;
+        final long threadTime = System.currentTimeMillis() - startTime;
         mainHandler.post(new Runnable() {
             @Override
             public void run() {

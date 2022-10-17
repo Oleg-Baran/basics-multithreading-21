@@ -1,6 +1,7 @@
 package com.artemchep.basics_multithreading;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.UiThread;
@@ -15,13 +16,17 @@ import com.artemchep.basics_multithreading.domain.Message;
 import com.artemchep.basics_multithreading.domain.WithMillis;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 public class MainActivity extends AppCompatActivity {
 
     private List<WithMillis<Message>> mList = new ArrayList<>();
 
     private MessageAdapter mAdapter = new MessageAdapter(mList);
+
+    private final TasksQueue<CipherThread> queue = new TasksQueue<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +38,13 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(mAdapter);
 
         showWelcomeDialog();
+        queue.start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        queue.stop();
     }
 
     private void showWelcomeDialog() {
@@ -55,17 +67,16 @@ public class MainActivity extends AppCompatActivity {
         mList.add(message);
         mAdapter.notifyItemInserted(mList.size() - 1);
 
-        CipherThread task = new CipherThread(message.value.plainText);
+        CipherThread task = new CipherThread(message.value.plainText, System.currentTimeMillis());
         task.setCICallback(new CipherI() {
             @Override
             public void updateUICallback(String cypheredText, long executionTime) {
                 final Message messageNew = message.value.copy(cypheredText);
-                final WithMillis<Message> messageNewWithMillis = new WithMillis<>(messageNew, (executionTime) / 10000000);
+                final WithMillis<Message> messageNewWithMillis = new WithMillis<>(messageNew, executionTime);
                 update(messageNewWithMillis);
             }
         });
-        Thread t = new Thread(task);
-        t.start();
+        queue.submit(task);
 
         // TODO: Start processing the message (please use CipherUtil#encrypt(...)) here.
         //       After it has been processed, send it to the #update(...) method.
@@ -96,5 +107,43 @@ public class MainActivity extends AppCompatActivity {
 
         throw new IllegalStateException();
     }
+}
 
+class TasksQueue<T extends Runnable> {
+    private final Queue<T> queue = new LinkedList<>();
+    private volatile boolean isRunning = true;
+
+    public void start() {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isRunning) {
+                    T task = getTask();
+                    task.run();
+                }
+            }
+        });
+        thread.start();
+    }
+
+    private synchronized T getTask() {
+        while (queue.isEmpty() && isRunning) {
+            try {
+                wait();
+            } catch (Exception e) {
+                Log.d("Exception", "Exception: " + e);
+            }
+        }
+        return queue.poll();
+    }
+
+    public synchronized void submit(T task) {
+        queue.offer(task);
+        notify();
+    }
+
+    public synchronized void stop() {
+        isRunning = false;
+        notify();
+    }
 }
