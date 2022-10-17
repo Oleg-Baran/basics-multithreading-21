@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(mAdapter);
 
-        //showWelcomeDialog();
+        showWelcomeDialog();
     }
 
     private void showWelcomeDialog() {
