@@ -119,7 +119,9 @@ class TasksQueue<T extends Runnable> {
             public void run() {
                 while (isRunning) {
                     T task = getTask();
-                    task.run();
+                    if (task != null) {
+                        task.run();
+                    }
                 }
             }
         });
